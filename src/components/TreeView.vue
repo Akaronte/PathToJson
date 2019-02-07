@@ -5,12 +5,8 @@
        <h1>PATH TO JSON VUE COMPONENT</h1>
       </v-flex>
       <v-flex xs12 sm12 md12>
-        {{fileList}}
       </v-flex>
-      <v-flex xs12 sm12 md12>
-        {{activeFileNames}}
-      </v-flex>
-        <v-flex xs12 sm6 md6>
+        <v-flex xs12 sm12 md12>
           <v-treeview
             v-model="tree"
             :active.sync="active"
@@ -27,10 +23,10 @@
           </v-treeview>
         </v-flex>
         <v-flex xs12 sm6 md6>
-          <v-chip v-for="(file, i) in activeViewFiles" :key="i" color="grey" dark small>
+          <!--<v-chip v-for="(file, i) in activeFileNames" :key="i" color="grey" dark small>
             <v-icon left small>description</v-icon>
-            {{ file.name }}
-          </v-chip>
+            {{ file.fileName }}
+          </v-chip>-->
         </v-flex>
     </v-container>
   </v-slide-y-transition>
@@ -44,12 +40,17 @@ export default {
       default: function() {
         return {};
       }
+    },
+    seledtedFiles: {
+      type: Object,
+      default: function() {
+        return {};
+      }
     }
   },
   data: () => ({
     selectedFiles: [],
     files: [],
-    filteredFiles: [],
     listFiles: [],
     list: [],
     tree: [],
@@ -130,19 +131,45 @@ export default {
         return this.activeFileIds.includes(file.id);
       });
       return viewFiles;
-    }
+    },
+    filteredFiles: function() {
+      return this.fileList.filter(file => {
+        let value = false
+        if (this.activeFileNames.includes(file.fileName)) {
+          value = true;
+        }
+        return value;
+      });
+    },
   },
   watch: {
     activeFileNames() {
-      console.log(this.activeFileNames);
+      //console.log(this.activeFileNames);
+    },
+    filteredFiles() {
+      //console.log(this.filteredFiles);
+      this.selectedFiles = this.filteredFiles;
+      this.$emit('selected', this.selectedFiles)
     }
   },
   mounted: function() {
-    this.listToObjets(this.fileList);
+    //this.listToObjets(this.fileList);
+    this.preFiles(this.fileList);
     this.buildTreeView(this.files);
   },
   methods: {
-    listToObjets(arrList) {
+    preFiles(arrObj) {
+      for (let i in arrObj) {
+        let file = arrObj[i];
+        let path = file.blobSource.substring(8, file.blobSource.length);
+        path = path.split("/");
+        path.shift();
+        path.pop();
+        this.files.push({ fileId: i, name: file.fileName, treeview: path });
+      }
+      //console.log(this.files);
+    },
+    /*listToObjets(arrList) {
       let fileid = 0;
       for (let p in arrList) {
         if (arrList[p][0] == "/") {
@@ -162,7 +189,7 @@ export default {
         console.log(file);
         return file;
       });
-    },
+    },*/
     buildTreeView(files) {
       let items = [];
       for (let file of files) {
@@ -197,7 +224,7 @@ export default {
       }
       items = this.joinKeys(items);
       this.items = items;
-      console.log(items);
+      //console.log(items);
       this.readTree(this.items);
       this.createList(this.list);
     },
@@ -317,30 +344,6 @@ export default {
           path: ele.path
         });
       }
-    },
-    filterFiles() {
-      this.tree = [];
-      this.open = [];
-      this.active = [];
-      this.list = [];
-      this.listFiles = [];
-      this.filteredFiles = this.files;
-      this.filteredFiles = this.filteredFiles.filter(
-        file => file.Projectname === this.project
-      );
-      this.buildTreeView(this.filteredFiles);
-    },
-    fillFiles() {
-      let filtered = [];
-      try {
-        console.log(this.filteredFiles);
-        filtered = this.filteredFiles.filter(file => {
-          return this.activeFileIds.includes(file.id);
-        });
-      } catch (err) {
-        console.error(err);
-      }
-      return filtered;
     }
   }
 };
