@@ -22,12 +22,6 @@
             </template>
           </v-treeview>
         </v-flex>
-        <v-flex xs12 sm6 md6>
-          <!--<v-chip v-for="(file, i) in activeFileNames" :key="i" color="grey" dark small>
-            <v-icon left small>description</v-icon>
-            {{ file.fileName }}
-          </v-chip>-->
-        </v-flex>
     </v-container>
   </v-slide-y-transition>
 </template>
@@ -167,29 +161,8 @@ export default {
         path.pop();
         this.files.push({ fileId: i, name: file.fileName, treeview: path });
       }
-      //console.log(this.files);
+      console.log(this.files);
     },
-    /*listToObjets(arrList) {
-      let fileid = 0;
-      for (let p in arrList) {
-        if (arrList[p][0] == "/") {
-          arrList[p] = arrList[p].substring(1, arrList[p].length);
-        }
-        if (arrList[p][arrList[p].length - 1] == "/") {
-          arrList[p] = arrList[p].substring(0, arrList[p].length - 1);
-        }
-        this.files.push({ path: arrList[p] });
-      }
-      this.files = this.files.map(file => {
-        file.treeview = file.path.split("/");
-        file.name = file.treeview[file.treeview.length - 1];
-        file.treeview.pop();
-        file.id = fileid + "c21d897a";
-        fileid = fileid + 1;
-        console.log(file);
-        return file;
-      });
-    },*/
     buildTreeView(files) {
       let items = [];
       for (let file of files) {
