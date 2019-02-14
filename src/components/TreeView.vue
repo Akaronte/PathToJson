@@ -8,13 +8,11 @@
       </v-flex>
         <v-flex xs12 sm12 md12>
           <v-treeview
-            v-model="tree"
-            :active.sync="active"
+            v-model="active"
             :items="items"
             :open.sync="open"
             item-key="id"
-            activatable
-            multiple-active
+            selectable
           >
             <template slot="prepend" slot-scope="{ item, open }">
               <v-icon v-if="!item.isFile">{{ open ? 'folder' : 'folder_open' }}</v-icon>
@@ -47,127 +45,57 @@ export default {
     files: [],
     listFiles: [],
     list: [],
-    tree: [],
+    active: [],
     open: [],
     items: [],
-    active: [],
     idTreeView: 0
   }),
   computed: {
     activeFiles: function() {
-      return this.listFiles.filter(file => {
-        let value = false;
-        for (let active of this.active) {
-          if (file.id == active) {
-            value = true;
-          }
-        }
-        return value;
-      });
-    },
-    activeFileNames: function() {
-      let myfiles = [];
-      let umyfiles = [];
-      for (let activeFile of this.activeFiles) {
-        if (Array.isArray(activeFile)) {
-          for (let file of activeFile.fileNames) {
-            myfiles.push(file);
-          }
-        } else {
-          myfiles.push(activeFile.fileNames);
-        }
-      }
-      for (let myfile of myfiles) {
-        if (Array.isArray(myfile)) {
-          for (let m of myfile) {
-            if (!umyfiles.includes(m)) {
-              umyfiles.push(m);
-            }
-          }
-        } else {
-          if (!umyfiles.includes(myfile)) {
-            umyfiles.push(myfile);
-          }
-        }
-      }
-      return umyfiles;
-    },
-    activeFileIds: function() {
-      let myfiles = [];
-      let umyfiles = [];
-      for (let activeFile of this.activeFiles) {
-        if (Array.isArray(activeFile)) {
-          for (let file of activeFile.fileIds) {
-            myfiles.push(file);
-          }
-        } else {
-          myfiles.push(activeFile.fileIds);
-        }
-      }
-      for (let myfile of myfiles) {
-        if (Array.isArray(myfile)) {
-          for (let m of myfile) {
-            if (!umyfiles.includes(m)) {
-              umyfiles.push(m);
-            }
-          }
-        } else {
-          if (!umyfiles.includes(myfile)) {
-            umyfiles.push(myfile);
-          }
-        }
-      }
-      return umyfiles;
-    },
-    activeViewFiles: function() {
-      let viewFiles = [];
-      viewFiles = this.filteredFiles.filter(file => {
-        return this.activeFileIds.includes(file.id);
-      });
-      return viewFiles;
-    },
-    filteredFiles: function() {
-      return this.fileList.filter(file => {
-        let value = false
-        if (this.activeFileNames.includes(file.fileName)) {
-          value = true;
-        }
-        return value;
-      });
+      return this.list.filter(file => {
+        return this.active.includes(file.id)
+      })
     },
   },
   watch: {
-    activeFileNames() {
-      //console.log(this.activeFileNames);
+    activeFiles() {
+      //console.log(this.activeFiles);
+    },
+    active() {
+      //console.log(this.active);
     },
     filteredFiles() {
-      //console.log(this.filteredFiles);
-      this.selectedFiles = this.filteredFiles;
-      this.$emit('selected', this.selectedFiles)
+      this.$emit('selected', this.activeFiles)
     }
   },
   mounted: function() {
-    //this.listToObjets(this.fileList);
-    this.preFiles(this.fileList);
+    this.fixPaths();
     this.buildTreeView(this.files);
   },
   methods: {
-    preFiles(arrObj) {
-      for (let i in arrObj) {
-        let file = arrObj[i];
-        let path = file.blobSource.substring(8, file.blobSource.length);
-        path = path.split("/");
-        path.shift();
-        path.pop();
-        this.files.push({ fileId: i, name: file.fileName, treeview: path });
+fixPaths() {
+      for(let path of this.fileList){
+        this.files.push({ Path: path});
       }
-      console.log(this.files);
+      for (let file of this.files) {
+        if (file.Path[0] == '/') {
+          file.Path = file.Path.substring(1, file.Path.length - 1);
+        }
+        if (file.Path[file.Path.length - 1] == '/') {
+          file.Path = file.Path.substring(0, file.Path.length - 1);
+        }
+        for (const file of this.files) {
+          file.path = file.Path
+          file.treeview = file.Path.split('/');
+        }
+      }
     },
     buildTreeView(files) {
       let items = [];
       for (let file of files) {
-        this.idTreeView++;
+        this.idTreeView = this.usecounter(this.idTreeView);
         let i = file.treeview.length - 1;
+        let name = file.treeview[file.treeview.length - 1];
         let temp = [];
         let fileNames = [];
         let fileIds = [];
@@ -175,21 +103,23 @@ export default {
         fileIds.push(file.id);
         temp = [
           {
-            name: file.name,
-            fileNames: file.name,
+            name: name,
+            fileNames: name,
             id: this.idTreeView,
             isFile: true,
-            fileIds: file.id
+            fileIds: this.idTreeView,
+            path: file.path
           }
         ];
         while (i > -1) {
-          this.idTreeView++;
+          this.idTreeView = this.usecounter(this.idTreeView);
           temp = this.pathToArray(
             temp,
             file.treeview[i],
             fileNames,
             this.idTreeView,
-            fileIds
+            fileIds,
+            file.path
           );
           i--;
         }
@@ -200,6 +130,7 @@ export default {
       //console.log(items);
       this.readTree(this.items);
       this.createList(this.list);
+      //console.log(this.list);
     },
     isDuplicate(items) {
       let value = false;
@@ -218,8 +149,9 @@ export default {
       }
       return value;
     },
-    pathToArray(temp, name, fileNames, id, fileIds) {
-      this.idTreeView++;
+    pathToArray(temp, name, fileNames, id, fileIds, filePath) {
+      this.idTreeView = this.usecounter(this.idTreeView);
+      fileIds.push(this.idTreeView);
       return (temp = [
         {
           name: name,
@@ -227,7 +159,8 @@ export default {
           fileNames: fileNames,
           id: id,
           isFile: false,
-          fileIds: fileIds
+          fileIds: fileIds,
+          path: filePath
         }
       ]);
     },
@@ -242,7 +175,8 @@ export default {
               fileNames: item.fileNames,
               id: item.id,
               isFile: item.isFile,
-              fileIds: item.fileIds
+              fileIds: item.fileIds,
+              path: item.path
             });
           } else {
             uitems.push({
@@ -250,7 +184,8 @@ export default {
               fileNames: item.fileNames,
               id: item.id,
               isFile: item.isFile,
-              fileIds: item.fileIds
+              fileIds: item.fileIds,
+              path: item.path
             });
           }
         }
@@ -302,7 +237,9 @@ export default {
     },
     readTree(items) {
       for (let item of items) {
-        this.list.push(item);
+        if(item.isFile){
+          this.list.push(item);
+        }
         if (item.children) {
           this.readTree(item.children);
         }
@@ -317,6 +254,9 @@ export default {
           path: ele.path
         });
       }
+    },
+    usecounter(i){
+      return i + 1;
     }
   }
 };
